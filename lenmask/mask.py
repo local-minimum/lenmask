@@ -99,7 +99,7 @@ def _distance_worm(im, size=3):
     return convolve2d(distance_transform_cdt(im), k, "same")
 
 
-def analyse(path):
+def analyse(path, background_smoothing=101):
 
     im = load_grayscale_image(path)
     im = clear_image(im, sigma=background_smoothing)

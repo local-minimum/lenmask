@@ -2,13 +2,13 @@
 
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-    binary_closing, binary_propagation, binary_fill_holes
+    binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt
 from scipy.signal import convolve2d
 
 import numpy as np
 
 
-def _load_grayscale(path):
+def load_grayscale_image(path):
 
     im = imread(path)
     if im.ndim == 3:
@@ -17,7 +17,7 @@ def _load_grayscale(path):
     return im
 
 
-def _dynamic_gauss_background_remove(im, sigma=101):
+def clear_image(im, sigma=101):
 
     return im - gaussian_filter(im, sigma=sigma)
 
@@ -84,10 +84,22 @@ def _label(im, minsize=30, max_worms=10):
 
 def labeled(im, background_smoothing=101, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
 
-    im = _dynamic_gauss_background_remove(im, sigma=background_smoothing)
     sim = gaussian_filter(im, sigma=init_smoothing)
+    # TODO: Separate edges
     e, _ = _edges_and_corners(sim, sigma=edge_smoothing)
     t1 = _threshold_im(sim, seg_c)
     t2 = _threshold_im(e)
     t = _simplify_binary(t1 | t2)
     return _label(t)
+
+def _distance_worm(im, size=3):
+
+    k = np.ones((k, k)) / k **2
+    return convolve2d(distance_transform_cdt(im), k, "same")
+
+
+def analyse(path):
+
+    im = load_grayscale_image(path)
+    im = clear_image(im, sigma=background_smoothing)
+    worms = labeled(im)

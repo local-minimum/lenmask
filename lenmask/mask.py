@@ -2,7 +2,7 @@
 
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-     binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt, center_of_mass
+     binary_closing, binary_propagation, binary_fill_holes, distance_transform_edt, center_of_mass
 from scipy.signal import convolve2d
 
 import numpy as np
@@ -32,17 +32,14 @@ def _get_derivatives(img):
     return ix, iy
 
 
-def _edges_and_corners(im, kappa=0.1, sigma=1):
+def _edges(im, sigma=1):
 
     ix, iy = _get_derivatives(im)
     ix2 = ix ** 2
     iy2 = iy ** 2
     sx2 = gaussian_filter(ix2, sigma)
     sy2 = gaussian_filter(iy2, sigma)
-    sxy = gaussian_filter(ix + iy, sigma)
-    h = np.array([[sx2, sxy], [sxy, sy2]])
-    r = np.linalg.det(h.T).T - kappa * np.trace(h) ** 2
-    return np.sqrt(ix2 + iy2), r
+    return np.sqrt(ix2 + iy2)
 
 
 def _threshold_im(im, c=0.3):
@@ -53,7 +50,8 @@ def _threshold_im(im, c=0.3):
 def _simplify_binary(im, iterations=2, structure=np.ones((5, 5))):
     # TODO: invert and label and fill in those that are not too big
     t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=iterations)
-    return binary_fill_holes(t, structure)
+    t = binary_fill_holes(t, structure)
+    return t
 
 
 def _label(im, minsize=30, max_worms=10):
@@ -85,8 +83,7 @@ def _label(im, minsize=30, max_worms=10):
 def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
 
     sim = gaussian_filter(im, sigma=init_smoothing)
-    # TODO: Separate edges
-    e, _ = _edges_and_corners(sim, sigma=edge_smoothing)
+    e = _edges(sim, sigma=edge_smoothing)
     t1 = _threshold_im(sim, seg_c)
     t2 = _threshold_im(e)
     t = _simplify_binary(t1 | t2)
@@ -106,7 +103,7 @@ def get_spine(binary_worm):
 def _distance_worm(im, size=3):
 
     k = np.ones((size, size)) / size **2
-    return convolve2d(distance_transform_cdt(im), k, "same")
+    return convolve2d(distance_transform_edt(im), k, "same")
 
 
 def _seed_walker(dworm):

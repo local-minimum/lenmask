@@ -2,7 +2,7 @@
 
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-     binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt, cemter_of_mass
+     binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt, center_of_mass
 from scipy.signal import convolve2d
 
 import numpy as np
@@ -113,7 +113,7 @@ def _seed_walker(dworm):
             best_i = i
 
     m = lim == best_i
-    cx, cy = cemter_of_mass(m)
+    cx, cy = center_of_mass(m)
     px, py = np.where(m)
     d = (px - cx) ** 2 - (py - cy) ** 2
     mind = d.argmin()
@@ -121,8 +121,8 @@ def _seed_walker(dworm):
     origin = np.array((px[mind], py[mind]))
     slope, _ = np.polyfit(px, py, 1)
 
-    v = np.array(1, slope)
-    v /= v.sum()
+    v = np.array((1, slope))
+    v /= np.sqrt((v ** 2).sum())
     return origin, v, -v
 
 

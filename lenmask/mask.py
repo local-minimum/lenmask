@@ -82,7 +82,7 @@ def _label(im, minsize=30, max_worms=10):
     return np.frompyfunc(filt, 1, 1)(l).astype(int)
 
 
-def labeled(im, background_smoothing=101, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
+def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
 
     sim = gaussian_filter(im, sigma=init_smoothing)
     # TODO: Separate edges
@@ -92,9 +92,10 @@ def labeled(im, background_smoothing=101, init_smoothing=5, edge_smoothing=3, se
     t = _simplify_binary(t1 | t2)
     return _label(t)
 
+
 def _distance_worm(im, size=3):
 
-    k = np.ones((k, k)) / k **2
+    k = np.ones((size, size)) / size **2
     return convolve2d(distance_transform_cdt(im), k, "same")
 
 

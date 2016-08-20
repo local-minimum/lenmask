@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 from scipy.misc import imread
-from scipy.interpolate import Rbf
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-    binary_closing, binary_propagation, binary_fill_holes,
+    binary_closing, binary_propagation, binary_fill_holes
+from scipy.signal import convolve2d
 
 import numpy as np
 
@@ -22,13 +22,43 @@ def _dynamic_gauss_background_remove(im, sigma=101):
     return im - gaussian_filter(im, sigma=sigma)
 
 
-def _label(im, c=0.3, iterations=2, minsize=30, structure=np.ones((5, 5)), max_worms=10):
+def _get_derivatives(img):
+    kernel = np.array([[-1, -2, -1],
+                       [0, 0, 0],
+                       [1, 2, 1]])
+    ix = convolve2d(img, kernel.T, 'same')
+    iy = convolve2d(img, kernel, 'same')
 
-    t = im > im.mean() + c * im.std()
-    t = binary_dilation(binary_erosion(t, structure, iterations=iterations), structure, iterations=iterations)
-    t = binary_fill_holes(t, structure)
+    return ix, iy
 
-    l, labels = label(t)
+
+def _edges_and_corners(im, kappa=0.1, sigma=1):
+
+    ix, iy = _get_derivatives(im)
+    ix2 = ix ** 2
+    iy2 = iy ** 2
+    sx2 = gaussian_filter(ix2, sigma)
+    sy2 = gaussian_filter(iy2, sigma)
+    sxy = gaussian_filter(ix + iy, sigma)
+    h = np.array([[sx2, sxy], [sxy, sy2]])
+    r = np.linalg.det(h.T).T - kappa * np.trace(h) ** 2
+    return np.sqrt(ix2 + iy2), r
+
+
+def _threshold_im(im, c=0.3):
+
+    return im > im.mean() + c * im.std()
+
+
+def _simplify_binary(im, iterations=2, structure=np.ones((5, 5))):
+
+    t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=iterations)
+    return binary_fill_holes(t, structure)
+
+
+def _label(im, minsize=30, max_worms=10):
+
+    l, labels = label(im)
     c = np.zeros((labels + 1,))
 
     for i in range(labels + 1):
@@ -50,3 +80,14 @@ def _label(im, c=0.3, iterations=2, minsize=30, structure=np.ones((5, 5)), max_w
         return 0
 
     return np.frompyfunc(filt, 1, 1)(l).astype(int)
+
+
+def labeled(im, background_smoothing=101, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
+
+    im = _dynamic_gauss_background_remove(im, sigma=background_smoothing)
+    sim = gaussian_filter(im, sigma=init_smoothing)
+    e, _ = _edges_and_corners(sim, sigma=edge_smoothing)
+    t1 = _threshold_im(sim, seg_c)
+    t2 = _threshold_im(e)
+    t = _simplify_binary(t1 | t2)
+    return _label(t)

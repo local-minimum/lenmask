@@ -93,6 +93,16 @@ def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
     return _label(t)
 
 
+def get_spine(binary_worm):
+
+    dist_worm = _distance_worm(binary_worm)
+    origin, v1, v2 = _seed_walker(dist_worm)
+    step = 10
+    path = [origin, np.round(origin + step * v1).astype(origin.dtype)]
+    path = _walk(dist_worm, path)
+    return np.array(_walk(dist_worm, path[::-1])).T
+
+
 def _distance_worm(im, size=3):
 
     k = np.ones((size, size)) / size **2
@@ -113,20 +123,20 @@ def _seed_walker(dworm):
             best_i = i
 
     m = lim == best_i
-    cx, cy = center_of_mass(m)
-    px, py = np.where(m)
+    cy, cx = center_of_mass(m)
+    py, px = np.where(m)
     d = (px - cx) ** 2 - (py - cy) ** 2
     mind = d.argmin()
 
-    origin = np.array((py[mind], px[mind]))
+    origin = np.array((px[mind], py[mind]))
     slope, _ = np.polyfit(px, py, 1)
 
-    v = np.array((slope, 1))
+    v = np.array((1, slope))
     v /= np.sqrt((v ** 2).sum())
     return origin, v, -v
 
 
-def _walk(im, path, step=10, minstep=3, kernel_half_size=2):
+def _walk(im, path, step=10, minstep=3, kernel_half_size=11):
 
     kernel_size = 2 * kernel_half_size + 1
 
@@ -135,22 +145,28 @@ def _walk(im, path, step=10, minstep=3, kernel_half_size=2):
     xmin = max(0, x - kernel_half_size)
     ymin = max(0, y - kernel_half_size)
 
-    k = im[xmin: xmin + kernel_size, ymin: ymin + kernel_size]
+    k = im[ymin: ymin + kernel_size, xmin: xmin + kernel_size]
     if k.any() == False:
+        print("Outside worm")
+        print(k)
         return path[:-1]
 
-    newx, newy = (int(round(v)) for v in center_of_mass(k))
+    newy, newx = (int(round(v)) for v in center_of_mass(k))
+
     newx += xmin
     newy += ymin
+
     pos = np.array((newx, newy))
     old_pos = path[-2]
     v = pos - old_pos
     l2 = (v ** 2).sum()
     if l2 == 0:
+        print("Zero step")
         return path[:-1]
 
     l = np.sqrt(l2)
     if l < minstep:
+        print("Small step")
         return path
 
     path[-1] = pos

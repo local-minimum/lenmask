@@ -47,10 +47,18 @@ def _threshold_im(im, c=0.3):
     return im > im.mean() + c * im.std()
 
 
-def _simplify_binary(im, iterations=2, structure=np.ones((5, 5))):
-    # TODO: invert and label and fill in those that are not too big
+def _simplify_binary(im, iterations=2, structure=np.ones((5, 5)), hole_structure=np.ones((7, 7)), hole_size=0.01):
     t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=iterations)
-    t = binary_fill_holes(t, structure)
+    t = binary_fill_holes(t, hole_structure)
+
+    bg = ~t
+
+    holes, n = label(bg)
+    counts = np.bincount(holes.ravel())
+    refs = counts.argsort()[-2:]
+    id_holes, = np.where(counts < (hole_size * refs.min()))
+    for hole in id_holes:
+        t[holes == hole] = False
     return t
 
 
@@ -180,7 +188,7 @@ def analyse(path, background_smoothing=101):
     worms = labeled(im)
     worms_data = {}
     for id_worm in range(1, worms.max() + 1):
-        worm = worms == worms.max()
+        worm = worms == id_worm
         worm_path = get_spine(worm)
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
         worms_data[id_worm] = {'ridge': worm_path,

@@ -3,7 +3,8 @@
 from scipy.misc import imread
 from scipy.interpolate import Rbf
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-    binary_closing, binary_propagation, binary_fill_holes
+    binary_closing, binary_propagation, binary_fill_holes,
+
 import numpy as np
 
 
@@ -14,29 +15,6 @@ def _load_grayscale(path):
         im = im.mean(axis=-1)
 
     return im
-
-
-def _dynamic_threshold(im, part=5):
-
-    d1old = 0
-    d2old = 0
-    t = np.zeros_like(im) -1
-    for d1 in np.linspace(0, im.shape[0], part + 1):
-
-        if d1 == 0:
-            d1old = d1
-            continue
-
-        for d2 in np.linspace(0, im.shape[1], part + 1):
-
-            if d2 != 0:
-
-                t[round((d1 + d1old) / 2), round((d2 + d2old) / 2)] = im[d1old: d1, d2old : d2].mean()
-
-    y, x = np.where(t > -1)
-    YI, XI = np.meshgrid(*(np.arange(v) for v in im.shape))
-    rbf = Rbf(y, x, t[y, x])
-    return rbf(YI, XI).T
 
 
 def _dynamic_gauss_background_remove(im, sigma=101):

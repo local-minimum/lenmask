@@ -118,12 +118,46 @@ def _seed_walker(dworm):
     d = (px - cx) ** 2 - (py - cy) ** 2
     mind = d.argmin()
 
-    origin = np.array((px[mind], py[mind]))
+    origin = np.array((py[mind], px[mind]))
     slope, _ = np.polyfit(px, py, 1)
 
-    v = np.array((1, slope))
+    v = np.array((slope, 1))
     v /= np.sqrt((v ** 2).sum())
     return origin, v, -v
+
+
+def _walk(im, path, step=10, minstep=3, kernel_half_size=2):
+
+    kernel_size = 2 * kernel_half_size + 1
+
+    x, y = path[-1]
+
+    xmin = max(0, x - kernel_half_size)
+    ymin = max(0, y - kernel_half_size)
+
+    k = im[xmin: xmin + kernel_size, ymin: ymin + kernel_size]
+    if k.any() == False:
+        return path[:-1]
+
+    newx, newy = (int(round(v)) for v in center_of_mass(k))
+    newx += xmin
+    newy += ymin
+    pos = np.array((newx, newy))
+    old_pos = path[-2]
+    v = pos - old_pos
+    l2 = (v ** 2).sum()
+    if l2 == 0:
+        return path[:-1]
+
+    l = np.sqrt(l2)
+    if l < minstep:
+        return path
+
+    path[-1] = pos
+
+    path.append(np.round(pos + v / l * step).astype(path[-1].dtype))
+
+    return _walk(im, path, step, minstep, kernel_half_size)
 
 
 def analyse(path, background_smoothing=101):

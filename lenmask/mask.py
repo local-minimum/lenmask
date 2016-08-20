@@ -178,6 +178,21 @@ def analyse(path, background_smoothing=101):
     im = load_grayscale_image(path)
     im = clear_image(im, sigma=background_smoothing)
     worms = labeled(im)
-    w1 = worms == worms.max()
-    worm_path = get_spine(w1)
-    worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
+    worms_data = {}
+    for id_worm in range(1, worms.max() + 1):
+        worm = worms == worms.max()
+        worm_path = get_spine(worm)
+        worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
+        worms_data[id_worm] = {'ridge': worm_path,
+                               'length': worm_len,
+                               'area': worm.sum()}
+
+    return worms_data, im, worms
+
+
+def outline(binary_worm, edge_width=1):
+
+    e = _edges(binary_worm) > 0
+    if edge_width > 1:
+        e = binary_dilation(e, iterations=edge_width - 1)
+    return e

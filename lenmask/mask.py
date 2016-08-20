@@ -2,7 +2,7 @@
 
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
-    binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt
+     binary_closing, binary_propagation, binary_fill_holes, distance_transform_cdt, cemter_of_mass
 from scipy.signal import convolve2d
 
 import numpy as np
@@ -51,7 +51,7 @@ def _threshold_im(im, c=0.3):
 
 
 def _simplify_binary(im, iterations=2, structure=np.ones((5, 5))):
-
+    # TODO: invert and label and fill in those that are not too big
     t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=iterations)
     return binary_fill_holes(t, structure)
 
@@ -97,6 +97,33 @@ def _distance_worm(im, size=3):
 
     k = np.ones((size, size)) / size **2
     return convolve2d(distance_transform_cdt(im), k, "same")
+
+
+def _seed_walker(dworm):
+
+    m = dworm == dworm.max()
+    lim, l = label(m)
+    best_i = 1
+    best = (lim == 1).sum()
+
+    for i in range(best_i + 1, l + 1):
+
+        val = (lim == i).sum()
+        if val > best:
+            best_i = i
+
+    m = lim == best_i
+    cx, cy = cemter_of_mass(m)
+    px, py = np.where(m)
+    d = (px - cx) ** 2 - (py - cy) ** 2
+    mind = d.argmin()
+
+    origin = np.array((px[mind], py[mind]))
+    slope, _ = np.polyfit(px, py, 1)
+
+    v = np.array(1, slope)
+    v /= v.sum()
+    return origin, v, -v
 
 
 def analyse(path, background_smoothing=101):

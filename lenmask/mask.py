@@ -178,3 +178,6 @@ def analyse(path, background_smoothing=101):
     im = load_grayscale_image(path)
     im = clear_image(im, sigma=background_smoothing)
     worms = labeled(im)
+    w1 = worms == worms.max()
+    worm_path = get_spine(w1)
+    worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()

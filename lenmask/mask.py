@@ -139,6 +139,30 @@ def _seed_walker(dworm):
     return origin, v, -v
 
 
+def _get_pixel_vector(h, a):
+
+    y = np.sin(a) * h
+    x = np.cos(a) * h
+    v = np.array((np.linspace(h, h + x, h, endpoint=False),
+                  np.linspace(h, h + y, h, endpoint=False)))
+    v = np.round(v).astype(int)
+    delta = (np.diff(v.T, axis=0) ** 2).sum(axis=1) > 0
+    return v.T[1:][delta].T
+
+
+def _eval_local_ridge(local_im, steps=42):
+
+    h = np.ceil(np.sqrt(local_im.size)).astype(int)
+    if h % 2 == 0:
+        raise ValueError("Only odd sized slices")
+    h = (h - 1) / 2
+    res = {}
+    for a in np.linspace(0, 2 * np.pi, steps, endpoint=False):
+        x, y = _get_pixel_vector(h, a)
+        res[a] = local_im[y, x].mean()
+    return res
+
+
 def _walk(im, path, step=10, minstep=3, kernel_half_size=11):
 
     kernel_size = 2 * kernel_half_size + 1

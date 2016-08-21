@@ -37,8 +37,6 @@ def _edges(im, sigma=1):
     ix, iy = _get_derivatives(im)
     ix2 = ix ** 2
     iy2 = iy ** 2
-    sx2 = gaussian_filter(ix2, sigma)
-    sy2 = gaussian_filter(iy2, sigma)
     return np.sqrt(ix2 + iy2)
 
 
@@ -181,7 +179,7 @@ def _walk(im, path, step=10, minstep=3, kernel_half_size=11):
     return _walk(im, path, step, minstep, kernel_half_size)
 
 
-def analyse(path, background_smoothing=101):
+def analyse(path, background_smoothing=51):
 
     im = load_grayscale_image(path)
     im = clear_image(im, sigma=background_smoothing)

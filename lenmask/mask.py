@@ -99,11 +99,10 @@ def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
 def get_spine(binary_worm):
 
     dist_worm = _distance_worm(binary_worm)
-    origin, v1, v2 = _seed_walker(dist_worm)
-    step = 10
-    path = [origin, np.round(origin + step * v1).astype(origin.dtype)]
-    path = _walk(dist_worm, path)
-    return np.array(_walk(dist_worm, path[::-1])).T
+    origin, a1, a2 = _seed_walker2(dist_worm)
+    path = [origin]
+    path = _walk2(dist_worm, path, a1)
+    return np.array(_walk2(dist_worm, path[::-1], a2)).T
 
 
 def _distance_worm(im, size=3):
@@ -163,44 +162,194 @@ def _eval_local_ridge(local_im, steps=42):
     return res
 
 
-def _walk(im, path, step=10, minstep=3, kernel_half_size=11):
+def _angle_dist(a, b):
+
+    d = np.abs(a - b) % (2 * np.pi)
+    d[d > np.pi] = 2 * np.pi - d[d > np.pi]
+    return d
+
+
+def _scaled_angle_value(angles, values, id_a=None, a=None):
+
+    if id_a is not None:
+        filt = np.arange(angles.size) != id_a
+        d = _angle_dist(angles, angles[id_a])[filt]
+    else:
+        filt = angles != a
+        d = _angle_dist(angles, a)[filt]
+    angles = angles[filt]
+    values = values[filt]
+    return values * d, angles
+
+
+def _angle_to_v2(a):
+
+    return np.array((np.cos(a), np.sin(a)))
+
+
+def _seed_walker2(distance_worm, kernel_half_size=9):
+
+    y, x = np.where(distance_worm == distance_worm.max())
+    y = y[0]
+    x = x[0]
+    xmin = np.max((0, x - kernel_half_size))
+    ymin = np.max((0, y - kernel_half_size))
+
+    k = distance_worm[
+        ymin: ymin + 2 * kernel_half_size + 1,
+        xmin: xmin + 2 * kernel_half_size + 1]
+
+    directions = _eval_local_ridge(k)
+
+    values = np.array(directions.values())
+    angles = np.array(directions.keys())
+
+    best, = np.where(values == values.max())
+
+    if best.size > 2:
+
+        err = np.abs(np.pi - np.subtract.outer(angles[best], angles[best]))
+        pos = np.array(np.array(np.where(err == err.min())))
+        pos = np.array([v for v in pos if (np.diff(v) > 0).all()])
+        if pos.shape[0] > 1:
+            a1, a2 = angles[best[pos[np.random.randint(0, pos.shape[1])]]]
+        else:
+            a1, a2 = angles[best[pos[0]]]
+
+    if best.size == 2:
+        a1, a2 = best
+        v1, angles1 = _scaled_angle_value(angles, values, a1)
+        a1best = angles1[v1.argmax()]
+        if angles[a2] != a1best:
+            v2, angles2 = _scaled_angle_value(angles, values, a2)
+            if v2.max() > v1.max():
+                a1 = np.where(angles == angles2[v2.argmax()])[0][0]
+            else:
+                a2 = np.where(angles == angles1[v1.argmax()])[0][0]
+
+    else:
+        a1 = best[0]
+        v1, angles1 = _scaled_angle_value(angles, values, a1)
+        a2 = np.where(angles == angles1[v1.argmax()])[0][0]
+
+    a1 = angles[a1]
+    a2 = angles[a2]
+
+    return np.array((x, y)), a1, a2
+
+
+def _get_local_kernel(im, pos, kernel_half_size):
 
     kernel_size = 2 * kernel_half_size + 1
 
-    x, y = path[-1]
+    x, y = pos
 
-    xmin = max(0, x - kernel_half_size)
-    ymin = max(0, y - kernel_half_size)
+    xmin = int(round(max(0, x - kernel_half_size)))
+    ymin = int(round(max(0, y - kernel_half_size)))
 
-    k = im[ymin: ymin + kernel_size, xmin: xmin + kernel_size]
+    return im[ymin: ymin + kernel_size, xmin: xmin + kernel_size], xmin, ymin
+
+
+def _adjusted_guess(im, pos, kernel_half_size):
+
+    k, xmin, ymin = _get_local_kernel(im, pos, kernel_half_size)
+
     if k.any() == False:
-        print("Outside worm")
-        print(k)
-        return path[:-1]
+        None
 
     newy, newx = (int(round(v)) for v in center_of_mass(k))
 
     newx += xmin
     newy += ymin
+    return newx, newy
 
-    pos = np.array((newx, newy))
-    old_pos = path[-2]
-    v = pos - old_pos
+
+def _duplicated_pos(pos1, pos2, minstep):
+
+    v = pos1 - pos2
     l2 = (v ** 2).sum()
     if l2 == 0:
         print("Zero step")
-        return path[:-1]
-
+        return True
     l = np.sqrt(l2)
     if l < minstep:
         print("Small step")
-        return path
+        return True
+    return False
 
-    path[-1] = pos
 
-    path.append(np.round(pos + v / l * step).astype(path[-1].dtype))
+def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=1.4, max_depth=5000):
 
-    return _walk(im, path, step, minstep, kernel_half_size)
+    for _ in range(max_depth):
+        old_pos = path[-1]
+        # pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
+        pos = old_pos + _angle_to_v2(a) * step
+        if pos is None:
+            return path
+
+        pos = np.array(pos)
+        if _duplicated_pos(pos, old_pos, minstep):
+            return path
+        elif len(path) > 1 and _duplicated_pos(pos, path[-2], minstep):
+            return path
+
+        path.append(pos)
+
+        k, _, _ = _get_local_kernel(im, pos, kernel_half_size)
+        if k.any() == False:
+            return path
+        elif (k.shape[0] % 2) == 0 or (k.shape[1] % 2) == 0 or k.shape[0] != k.shape[1]:
+            return path
+
+        directions = _eval_local_ridge(k)
+        values = np.array(directions.values())
+        angles = np.array(directions.keys())
+        values, angles = _scaled_angle_value(angles, values, a=a)
+        new_a = angles[values.argmax()]
+        a = (momentum * a + new_a) / (1 + momentum)
+        a %= 2 * np.pi
+
+    return path
+
+
+def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):
+
+    for _ in range(max_depth):
+        kernel_size = 2 * kernel_half_size + 1
+
+        x, y = path[-1]
+
+        xmin = max(0, x - kernel_half_size)
+        ymin = max(0, y - kernel_half_size)
+
+        k = im[ymin: ymin + kernel_size, xmin: xmin + kernel_size]
+        if k.any() == False:
+            print("Outside worm")
+            return path[:-1]
+
+        newy, newx = (int(round(v)) for v in center_of_mass(k))
+
+        newx += xmin
+        newy += ymin
+
+        pos = np.array((newx, newy))
+        old_pos = path[-2]
+        v = pos - old_pos
+        l2 = (v ** 2).sum()
+        if l2 == 0:
+            print("Zero step")
+            return path[:-1]
+
+        l = np.sqrt(l2)
+        if l < minstep:
+            print("Small step")
+            return path
+
+        path[-1] = pos
+
+        path.append(np.round(pos + v / l * step).astype(path[-1].dtype))
+
+    return path
 
 
 def analyse(path, background_smoothing=51):

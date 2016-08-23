@@ -7,6 +7,25 @@ from scipy.signal import convolve2d
 
 import numpy as np
 
+"""
+Debug code
+
+from matplotlib import pyplot as plt
+plt.ion()
+f = plt.gcf()
+ax = f.add_subplot(2, 1, 1)
+detailed_ax = f.add_subplot(2, 1, 2)
+f.show()
+
+import lenmask.mask as m
+im = m.load_grayscale_image("")
+cim = m.clear_image(im)
+lim = m.labeled(cim)
+i = m.get_spine(lim == lim.max(), ax=ax, detailed_ax=detailed_ax, step_wise=True)
+
+val = next(i)
+
+"""
 
 def load_grayscale_image(path):
 

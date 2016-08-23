@@ -86,23 +86,71 @@ def _label(im, minsize=30, max_worms=10):
     return np.frompyfunc(filt, 1, 1)(l).astype(int)
 
 
-def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
-
+def threshold(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
     sim = gaussian_filter(im, sigma=init_smoothing)
     e = _edges(sim, sigma=edge_smoothing)
     t1 = _threshold_im(sim, seg_c)
     t2 = _threshold_im(e)
-    t = _simplify_binary(t1 | t2)
+    return _simplify_binary(t1 | t2)
+
+
+def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
+    t = threshold(im, init_smoothing, edge_smoothing, seg_c)
     return _label(t)
 
 
-def get_spine(binary_worm):
+def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
 
     dist_worm = _distance_worm(binary_worm)
+    if ax is not None:
+        ax.imshow(dist_worm, interpolation='nearest')
+        if step_wise:
+            yield  dist_worm
+
     origin, a1, a2 = _seed_walker2(dist_worm)
     path = [origin]
-    path = _walk2(dist_worm, path, a1)
-    return np.array(_walk2(dist_worm, path[::-1], a2)).T
+    if ax is not None:
+        ax.plot(origin[0], origin[1], 'x', ms=20, mew=3, color='k')
+        v1 = _angle_to_v2(a1) * 5 + origin
+        v2 = _angle_to_v2(a2) * 5 + origin
+        ax.plot([origin[0], v1[0]], [origin[1], v1[1]], '-', lw=3, color='c')
+        ax.plot([origin[0], v2[0]], [origin[1], v2[1]], '-', lw=3, color='c')
+        if step_wise:
+            yield origin, a1, a2
+
+    if ax is not None:
+        path_line = None
+
+    for a in (a1, a2):
+
+        for _, cur_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
+            if ax is not None:
+                if path_line is None:
+                    path_line, = ax.plot(path)
+                else:
+                    path_line.set_data(path)
+
+                if not detailed_ax:
+                    yield path
+
+            if detailed_ax:
+                detailed_ax.cla()
+
+                detailed_ax.imshow(local_kernel, interpolation='nearest')
+                center = np.array([int((v - 1) / 2) for v in local_kernel.shape])
+                v = center + _angle_to_v2(a) * center[0] * 1.2
+                vals = vals / max(vals)
+                for val, ang in zip(vals, angles):
+                    x, y = _get_pixel_vector(center[0], ang)
+                    detailed_ax.plot(x, y, lw=1 + 3 * val, color='k')
+                detailed_ax.plot([center[0], v[0]], [center[1], v[1]], '--', color='c', lw=2)
+
+                if step_wise:
+                    yield path, local_kernel
+
+        path = path[::-1]
+
+    yield np.array(path).T
 
 
 def _distance_worm(im, size=3):
@@ -149,7 +197,7 @@ def _get_pixel_vector(h, a):
     return v.T[1:][delta].T
 
 
-def _eval_local_ridge(local_im, steps=42):
+def _eval_local_dist_transform(local_im, steps=42):
 
     h = np.ceil(np.sqrt(local_im.size)).astype(int)
     if h % 2 == 0:
@@ -199,7 +247,7 @@ def _seed_walker2(distance_worm, kernel_half_size=9):
         ymin: ymin + 2 * kernel_half_size + 1,
         xmin: xmin + 2 * kernel_half_size + 1]
 
-    directions = _eval_local_ridge(k)
+    directions = _eval_local_dist_transform(k)
 
     values = np.array(directions.values())
     angles = np.array(directions.keys())
@@ -278,38 +326,38 @@ def _duplicated_pos(pos1, pos2, minstep):
     return False
 
 
-def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=1.4, max_depth=5000):
+def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=1.4, max_depth=5000, step_wise=False):
 
     for _ in range(max_depth):
         old_pos = path[-1]
         # pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
         pos = old_pos + _angle_to_v2(a) * step
         if pos is None:
-            return path
+            break
 
         pos = np.array(pos)
         if _duplicated_pos(pos, old_pos, minstep):
-            return path
+            break
         elif len(path) > 1 and _duplicated_pos(pos, path[-2], minstep):
-            return path
+            break
 
         path.append(pos)
 
         k, _, _ = _get_local_kernel(im, pos, kernel_half_size)
         if k.any() == False:
-            return path
+            break
         elif (k.shape[0] % 2) == 0 or (k.shape[1] % 2) == 0 or k.shape[0] != k.shape[1]:
-            return path
+            break
 
-        directions = _eval_local_ridge(k)
+        directions = _eval_local_dist_transform(k)
         values = np.array(directions.values())
         angles = np.array(directions.keys())
         values, angles = _scaled_angle_value(angles, values, a=a)
+        if step_wise:
+            yield path, a, k, values, angles
         new_a = angles[values.argmax()]
         a = (momentum * a + new_a) / (1 + momentum)
         a %= 2 * np.pi
-
-    return path
 
 
 def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):

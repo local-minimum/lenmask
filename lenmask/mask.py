@@ -232,7 +232,7 @@ def _eval_local_dist_transform(local_im, steps=360):
     res = {}
     for a in np.linspace(0, 2 * np.pi, steps, endpoint=False):
         x, y = _get_pixel_vector(h, a)
-        res[a] = local_im[y, x].mean()
+        res[a] = np.power(np.prod(local_im[y, x].astype(float)), 1.0 / x.size)
     return res
 
 
@@ -366,6 +366,8 @@ def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=10.0, m
         if _duplicated_pos(pos, old_pos, minstep):
             break
         elif len(path) > 1 and _duplicated_pos(pos, path[-2], minstep):
+            break
+        elif im[tuple(np.round(pos).astype(int)[::-1])] == 0:
             break
 
         path.append(pos)

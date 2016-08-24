@@ -133,7 +133,7 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
         v1 = _angle_to_v2(a1) * 5 + origin
         v2 = _angle_to_v2(a2) * 5 + origin
         ax.plot([origin[0], v1[0]], [origin[1], v1[1]], '-', lw=3, color='c')
-        ax.plot([origin[0], v2[0]], [origin[1], v2[1]], '-', lw=3, color='c')
+        ax.plot([origin[0], v2[0]], [origin[1], v2[1]], '-', lw=3, color='b')
         if step_wise:
             yield origin, a1, a2
 
@@ -142,31 +142,33 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
 
     for a in (a1, a2):
 
-        for _, cur_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
+        print(a)
+
+        for _, cur_a, best_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
             if ax is not None:
                 x_data, y_data = np.array(path).T
                 if path_line is None:
-                    path_line, = ax.plot(x_data, y_data, color='k', lw=1.5)
+                    path_line, = ax.plot(x_data, y_data, color='w', marker='.', lw=1.5)
                 else:
                     path_line.set_data(x_data, y_data)
 
                 if not detailed_ax:
-                    yield path
+                    yield path, cur_a
 
             if detailed_ax:
                 detailed_ax.cla()
 
                 detailed_ax.imshow(local_kernel, interpolation='nearest')
                 center = np.array([int((v - 1) / 2) for v in local_kernel.shape])
-                v = center + _angle_to_v2(a) * center[0] * 1.2
+                v = center + _angle_to_v2(cur_a) * center[0] * 1.2
                 vals = vals / max(vals)
                 for val, ang in zip(vals, angles):
                     x, y = _get_pixel_vector(center[0], ang)
-                    detailed_ax.plot(x, y, lw=1 + 3 * val, color='k')
+                    detailed_ax.plot(x, y, lw=1 + 3 * val, color='c' if ang == best_a else 'k')
                 detailed_ax.plot([center[0], v[0]], [center[1], v[1]], '--', color='c', lw=2)
 
                 if step_wise:
-                    yield path, local_kernel
+                    yield path, local_kernel, cur_a
 
         path = path[::-1]
 
@@ -217,7 +219,7 @@ def _get_pixel_vector(h, a):
     return v.T[1:][delta].T
 
 
-def _eval_local_dist_transform(local_im, steps=42):
+def _eval_local_dist_transform(local_im, steps=360):
 
     h = np.ceil(np.sqrt(local_im.size)).astype(int)
     if h % 2 == 0:
@@ -237,7 +239,7 @@ def _angle_dist(a, b):
     return d
 
 
-def _scaled_angle_value(angles, values, id_a=None, a=None):
+def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=0.2):
 
     if id_a is not None:
         filt = np.arange(angles.size) != id_a
@@ -247,7 +249,8 @@ def _scaled_angle_value(angles, values, id_a=None, a=None):
         d = _angle_dist(angles, a)[filt]
     angles = angles[filt]
     values = values[filt]
-    return values * (np.pi - d), angles
+    w = (np.pi - d) / np.pi * angle_dist_weight + (1 - angle_dist_weight)
+    return values * w, angles
 
 
 def _angle_to_v2(a):
@@ -255,7 +258,7 @@ def _angle_to_v2(a):
     return np.array((np.cos(a), np.sin(a)))
 
 
-def _seed_walker2(distance_worm, kernel_half_size=9):
+def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-.3):
 
     y, x = np.where(distance_worm == distance_worm.max())
     y = y[0]
@@ -286,10 +289,10 @@ def _seed_walker2(distance_worm, kernel_half_size=9):
 
     if best.size == 2:
         a1, a2 = best
-        v1, angles1 = _scaled_angle_value(angles, values, a1)
+        v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
         a1best = angles1[v1.argmax()]
         if angles[a2] != a1best:
-            v2, angles2 = _scaled_angle_value(angles, values, a2)
+            v2, angles2 = _scaled_angle_value(angles, values, a2, angle_dist_weight=closeness_weight)
             if v2.max() > v1.max():
                 a1 = np.where(angles == angles2[v2.argmax()])[0][0]
             else:
@@ -297,7 +300,7 @@ def _seed_walker2(distance_worm, kernel_half_size=9):
 
     else:
         a1 = best[0]
-        v1, angles1 = _scaled_angle_value(angles, values, a1)
+        v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
         a2 = np.where(angles == angles1[v1.argmax()])[0][0]
 
     a1 = angles[a1]
@@ -346,7 +349,7 @@ def _duplicated_pos(pos1, pos2, minstep):
     return False
 
 
-def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=1.4, max_depth=5000, step_wise=False):
+def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=10.0, max_depth=5000, step_wise=False):
 
     for _ in range(max_depth):
         old_pos = path[-1]
@@ -373,10 +376,11 @@ def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=1.4, ma
         values = np.array(directions.values())
         angles = np.array(directions.keys())
         values, angles = _scaled_angle_value(angles, values, a=a)
+        best_a = angles[values.argmax()]
         if step_wise:
-            yield path, a, k, values, angles
-        new_a = angles[values.argmax()]
-        a = (momentum * a + new_a) / (1 + momentum)
+            yield path, a, best_a, k, values, angles
+
+        a = (momentum * a + best_a) / (1 + momentum)
         a %= 2 * np.pi
 
 

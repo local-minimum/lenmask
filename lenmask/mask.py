@@ -65,7 +65,8 @@ def _threshold_im(im, c=0.3):
 
 
 def _simplify_binary(im, iterations=2, structure=np.ones((5, 5)), hole_structure=np.ones((7, 7)), hole_size=0.01):
-    t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=iterations)
+
+    t = binary_dilation(binary_erosion(im, structure, iterations=iterations), structure, iterations=2 * iterations)
     t = binary_fill_holes(t, hole_structure)
 
     bg = ~t
@@ -76,10 +77,13 @@ def _simplify_binary(im, iterations=2, structure=np.ones((5, 5)), hole_structure
     id_holes, = np.where(counts < (hole_size * refs.min()))
     for hole in id_holes:
         t[holes == hole] = False
-    return t
+
+    t = binary_fill_holes(t, hole_structure)
+
+    return binary_erosion(t, structure, iterations=iterations)
 
 
-def _label(im, minsize=30, max_worms=10):
+def _label(im, minsize=500, max_worms=10):
 
     l, labels = label(im)
     c = np.zeros((labels + 1,))

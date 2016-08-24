@@ -144,10 +144,11 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
 
         for _, cur_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
             if ax is not None:
+                x_data, y_data = np.array(path).T
                 if path_line is None:
-                    path_line, = ax.plot(path)
+                    path_line, = ax.plot(x_data, y_data, color='k', lw=1.5)
                 else:
-                    path_line.set_data(path)
+                    path_line.set_data(x_data, y_data)
 
                 if not detailed_ax:
                     yield path

@@ -247,7 +247,7 @@ def _scaled_angle_value(angles, values, id_a=None, a=None):
         d = _angle_dist(angles, a)[filt]
     angles = angles[filt]
     values = values[filt]
-    return values * d, angles
+    return values * (np.pi - d), angles
 
 
 def _angle_to_v2(a):

@@ -166,7 +166,9 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
                 center = np.array([int((v - 1) / 2) for v in local_kernel.shape])
                 v = center + _angle_to_v2(cur_a) * center[0] * 1.2
                 vals = vals / max(vals)
-                for val, ang in zip(vals, angles):
+                for i, (val, ang) in enumerate(zip(vals, angles)):
+                    if i % 10 != 0 and ang != best_a:
+                        continue
                     x, y = _get_pixel_vector(center[0], ang)
                     detailed_ax.plot(x, y, lw=1 + 3 * val, color='c' if ang == best_a else 'k')
                 detailed_ax.plot([center[0], v[0]], [center[1], v[1]], '--', color='c', lw=2)
@@ -229,11 +231,13 @@ def _eval_local_dist_transform(local_im, steps=360):
     if h % 2 == 0:
         raise ValueError("Only odd sized slices")
     h = (h - 1) / 2
-    res = {}
+    angles = []
+    values = []
     for a in np.linspace(0, 2 * np.pi, steps, endpoint=False):
         x, y = _get_pixel_vector(h, a)
-        res[a] = np.power(np.prod(local_im[y, x].astype(float)), 1.0 / x.size)
-    return res
+        angles.append(a)
+        values.append(np.power(np.prod(local_im[y, x].astype(float)), 1.0 / x.size))
+    return angles, values
 
 
 def _angle_dist(a, b):
@@ -243,7 +247,7 @@ def _angle_dist(a, b):
     return d
 
 
-def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=0.2):
+def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=1):
 
     if id_a is not None:
         filt = np.arange(angles.size) != id_a
@@ -253,7 +257,7 @@ def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=0.2
         d = _angle_dist(angles, a)[filt]
     angles = angles[filt]
     values = values[filt]
-    w = (np.pi - d) / np.pi * angle_dist_weight + (1 - angle_dist_weight)
+    w = np.power((np.pi - d) / np.pi, .125) * angle_dist_weight + (1 - angle_dist_weight)
     return values * w, angles
 
 
@@ -274,10 +278,9 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-.3):
         ymin: ymin + 2 * kernel_half_size + 1,
         xmin: xmin + 2 * kernel_half_size + 1]
 
-    directions = _eval_local_dist_transform(k)
-
-    values = np.array(directions.values())
-    angles = np.array(directions.keys())
+    angles, values = _eval_local_dist_transform(k)
+    angles = np.array(angles)
+    values = np.array(values)
 
     best, = np.where(values == values.max())
 
@@ -353,7 +356,7 @@ def _duplicated_pos(pos1, pos2, minstep):
     return False
 
 
-def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=10.0, max_depth=5000, step_wise=False):
+def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=5.0, max_depth=5000, step_wise=False):
 
     for _ in range(max_depth):
         old_pos = path[-1]
@@ -373,14 +376,15 @@ def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=10.0, m
         path.append(pos)
 
         k, _, _ = _get_local_kernel(im, pos, kernel_half_size)
+
         if k.any() == False:
             break
         elif (k.shape[0] % 2) == 0 or (k.shape[1] % 2) == 0 or k.shape[0] != k.shape[1]:
             break
 
-        directions = _eval_local_dist_transform(k)
-        values = np.array(directions.values())
-        angles = np.array(directions.keys())
+        angles, values = _eval_local_dist_transform(k)
+        angles = np.array(angles)
+        values = np.array(values)
         values, angles = _scaled_angle_value(angles, values, a=a)
         best_a = angles[values.argmax()]
         if step_wise:

@@ -4,9 +4,9 @@ from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
      binary_closing, binary_propagation, binary_fill_holes, distance_transform_edt, center_of_mass
 from scipy.signal import convolve2d
-
+from matplotlib import pyplot as plt
 import numpy as np
-
+import csv
 """
 Debug code
 
@@ -436,19 +436,45 @@ def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):
     return path
 
 
-def analyse(path, background_smoothing=51):
+def analyse(path, background_smoothing=51, save=True):
 
     im = load_grayscale_image(path)
     im = clear_image(im, sigma=background_smoothing)
+    if save:
+        plt.imsave(path + ".clear.png", im)
     worms = labeled(im)
+    if save:
+        plt.imsave(path + ".worms.png", worms)
     worms_data = {}
+
+    if save:
+        f = plt.figure()
+        ax = f.gca()
+        ax.imshow(im, cmap=plt.cm.Greys)
+        fh = open(path + ".data.csv", 'w')
+        csv_writer = csv.writer(fh)
+        csv_writer.writerow(["Worm", "Length", "Area", "X", "Y"])
+
     for id_worm in range(1, worms.max() + 1):
         worm = worms == id_worm
-        worm_path = get_spine(worm)
+        for worm_path in get_spine(worm):
+            pass
+
+        if worm_path.size <= 2:
+            continue
+
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
         worms_data[id_worm] = {'ridge': worm_path,
                                'length': worm_len,
                                'area': worm.sum()}
+
+        if save:
+            ax.plot(worm_path[0], worm_path[1], lw=3, color="r")
+            csv_writer.writerow([id_worm, worm_len, worm.sum(), worm_path[0].tolist(), worm_path[1].tolist()])
+
+    if save:
+        f.figsave(path + ".paths.png")
+        fh.close()
 
     return worms_data, im, worms
 

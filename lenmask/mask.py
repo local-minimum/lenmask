@@ -247,7 +247,7 @@ def _angle_dist(a, b):
     return d
 
 
-def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=1):
+def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=.9):
 
     if id_a is not None:
         filt = np.arange(angles.size) != id_a
@@ -257,7 +257,8 @@ def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=1):
         d = _angle_dist(angles, a)[filt]
     angles = angles[filt]
     values = values[filt]
-    w = np.power((np.pi - d) / np.pi, .125) * angle_dist_weight + (1 - angle_dist_weight)
+    d = (np.pi - d) / np.pi
+    w = np.power(d, .125) * angle_dist_weight  + d * (1 - angle_dist_weight)
     return values * w, angles
 
 

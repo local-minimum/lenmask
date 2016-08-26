@@ -247,7 +247,7 @@ def _angle_dist(a, b):
     return d
 
 
-def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=.9):
+def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=2, exponent=1.6):
 
     if id_a is not None:
         filt = np.arange(angles.size) != id_a
@@ -257,8 +257,9 @@ def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=.9)
         d = _angle_dist(angles, a)[filt]
     angles = angles[filt]
     values = values[filt]
-    d = (np.pi - d) / np.pi
-    w = np.power(d, .125) * angle_dist_weight  + d * (1 - angle_dist_weight)
+    d = (np.pi - d)
+    w = angle_dist_weight * (1. / (1. + np.power(np.e, -np.power(d, exponent)))) - 1
+    #w = np.power(np.power(d, 1.0 / exponent) * angle_dist_weight + d * (1 - angle_dist_weight), root2)
     return values * w, angles
 
 
@@ -267,7 +268,7 @@ def _angle_to_v2(a):
     return np.array((np.cos(a), np.sin(a)))
 
 
-def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-.3):
+def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
 
     y, x = np.where(distance_worm == distance_worm.max())
     y = y[0]

@@ -292,7 +292,8 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
         pos = np.array(np.array(np.where(err == err.min())))
         pos = np.array([v for v in pos if (np.diff(v) > 0).all()])
         if pos.shape[0] > 1:
-            a1, a2 = angles[best[pos[np.random.randint(0, pos.shape[1])]]]
+            # TODO: Something wrong here
+            a1, a2 = angles[best[pos[np.random.randint(0, pos.shape[0])]]]
         else:
             a1, a2 = angles[best[pos[0]]]
 

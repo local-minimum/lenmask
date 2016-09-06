@@ -29,6 +29,7 @@ val = next(i)
 
 """
 
+
 def load_grayscale_image(path):
 
     im = imread(path)
@@ -53,7 +54,7 @@ def _get_derivatives(img):
     return ix, iy
 
 
-def _edges(im, sigma=1):
+def _edges(im):
 
     ix, iy = _get_derivatives(im)
     ix2 = ix ** 2
@@ -111,16 +112,16 @@ def _label(im, minsize=500, max_worms=10):
     return np.frompyfunc(filt, 1, 1)(l).astype(int)
 
 
-def threshold(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
+def threshold(im, init_smoothing=5, seg_c=0.8):
     sim = gaussian_filter(im, sigma=init_smoothing)
-    e = _edges(sim, sigma=edge_smoothing)
+    e = _edges(sim)
     t1 = _threshold_im(sim, seg_c)
     t2 = _threshold_im(e)
     return _simplify_binary(t1 | t2)
 
 
-def labeled(im, init_smoothing=5, edge_smoothing=3, seg_c=0.8):
-    t = threshold(im, init_smoothing, edge_smoothing, seg_c)
+def labeled(im, init_smoothing=5, seg_c=0.8):
+    t = threshold(im, init_smoothing, seg_c)
     return _label(t)
 
 
@@ -130,7 +131,7 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
     if ax is not None:
         ax.imshow(dist_worm, interpolation='nearest')
         if step_wise:
-            yield  dist_worm
+            yield dist_worm
 
     origin, a1, a2 = _seed_walker2(dist_worm)
     path = [origin]
@@ -185,7 +186,7 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
 
 def _distance_worm(im, size=3):
 
-    k = np.ones((size, size)) / size **2
+    k = np.ones((size, size)) / size ** 2
     return convolve2d(distance_transform_edt(im), k, "same")
 
 
@@ -266,6 +267,12 @@ def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=2, 
 
 
 def _angle_to_v2(a):
+    """ angle to unit vector
+
+    :param a: angle
+    :return: unit vector
+    :rtype: numpy.ndarray
+    """
 
     return np.array((np.cos(a), np.sin(a)))
 
@@ -416,7 +423,7 @@ def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):
         ymin = max(0, y - kernel_half_size)
 
         k = im[ymin: ymin + kernel_size, xmin: xmin + kernel_size]
-        if k.any() == False:
+        if not k.any():
             print("Outside worm")
             return path[:-1]
 

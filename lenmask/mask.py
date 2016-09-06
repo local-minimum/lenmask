@@ -148,7 +148,7 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
 
     for a in (a1, a2):
 
-        print(a)
+        # print(a)
 
         for _, cur_a, best_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
             if ax is not None:
@@ -293,14 +293,14 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
         # TODO: This is one dim too many in the selection somehow
         err = np.abs(np.pi - np.subtract.outer(angles[best], angles[best]))
         pos = np.array(np.array(np.where(err == err.min())))
-        pos = np.array([v for v in pos if (np.diff(v) > 0).all()])
+
+        # TODO: What does this even mean
+        # pos = np.array([v for v in pos if (np.diff(v) > 0).all()])
 
         if pos.shape[0] > 1:
-            a1 = angles[best[pos[np.random.randint(0, pos.shape[0])]]]
+            a1 = angles[best[pos[np.random.randint(0, pos.shape[0])][0]]]
         else:
-            a1 = angles[best[pos[0]]]
-        print(pos)
-        print (a1)
+            a1 = angles[best[pos[0]][0]]
         v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
         a2 = np.where(angles == angles1[v1.argmax()])[0][0]
 
@@ -482,7 +482,7 @@ def analyse(path, background_smoothing=51, save=True):
             csv_writer.writerow([id_worm, worm_len, worm.sum(), worm_path[0].tolist(), worm_path[1].tolist()])
 
     if save:
-        f.figsave(path + ".paths.png")
+        f.savefig(path + ".paths.png")
         fh.close()
 
     return worms_data, im, worms

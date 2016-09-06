@@ -262,7 +262,7 @@ def _scaled_angle_value(angles, values, id_a=None, a=None, angle_dist_weight=2, 
     values = values[filt]
     d = (np.pi - d)
     w = angle_dist_weight * (1. / (1. + np.power(np.e, -np.power(d, exponent)))) - 1
-    #w = np.power(np.power(d, 1.0 / exponent) * angle_dist_weight + d * (1 - angle_dist_weight), root2)
+    # w = np.power(np.power(d, 1.0 / exponent) * angle_dist_weight + d * (1 - angle_dist_weight), root2)
     return values * w, angles
 
 
@@ -297,7 +297,6 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
 
     if best.size > 2:
 
-        # TODO: This is one dim too many in the selection somehow
         err = np.abs(np.pi - np.subtract.outer(angles[best], angles[best]))
         pos = np.array(np.array(np.where(err == err.min())))
 
@@ -350,8 +349,8 @@ def _adjusted_guess(im, pos, kernel_half_size):
 
     k, xmin, ymin = _get_local_kernel(im, pos, kernel_half_size)
 
-    if k.any() == False:
-        None
+    if not k.any():
+        return None
 
     newy, newx = (int(round(v)) for v in center_of_mass(k))
 
@@ -395,7 +394,7 @@ def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=5.0, ma
 
         k, _, _ = _get_local_kernel(im, pos, kernel_half_size)
 
-        if k.any() == False:
+        if not k.any():
             break
         elif (k.shape[0] % 2) == 0 or (k.shape[1] % 2) == 0 or k.shape[0] != k.shape[1]:
             break

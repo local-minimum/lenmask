@@ -3,7 +3,6 @@
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
      binary_closing, binary_propagation, binary_fill_holes, distance_transform_edt, center_of_mass
-from scipy.ndimage.filters import median_filter
 
 from scipy.signal import convolve2d
 from matplotlib import pyplot as plt
@@ -244,7 +243,7 @@ def _eval_local_dist_transform(local_im, steps=360):
     angles = []
     values = []
     for a in np.linspace(0, 2 * np.pi, steps, endpoint=False):
-        x, y = _get_pixel_vector(h, a)
+        x, y = _get_pixel_vector(h, a, local_im.shape[::-1])
         angles.append(a)
         values.append(np.power(np.prod(local_im[y, x].astype(float)), 1.0 / x.size))
     return angles, values

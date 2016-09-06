@@ -3,11 +3,14 @@
 from scipy.misc import imread
 from scipy.ndimage import gaussian_filter, binary_dilation, binary_erosion, label, \
      binary_closing, binary_propagation, binary_fill_holes, distance_transform_edt, center_of_mass
+from scipy.ndimage.filters import median_filter
+
 from scipy.signal import convolve2d
 from matplotlib import pyplot as plt
 import numpy as np
 import csv
 from argparse import ArgumentParser
+from glob import glob
 
 """
 Debug code
@@ -521,7 +524,7 @@ if  __name__ == "__main__":
 
     parser.add_argument(
         dest='filepath',
-        help="""Path to file to analyse, supported filetypes will depend on your python installation,
+        help="""Path or pattern to file(s) to analyse, supported filetypes will depend on your python installation,
         so if you get an error, try installing the newest version of the python package `pillow`
         (or its predecessor `PIL`).
         """
@@ -529,4 +532,6 @@ if  __name__ == "__main__":
 
     args = parser.parse_args()
 
-    analyse(args.filepath, background_smoothing=args.bg_smoothing)
+    for filepath in glob(args.filepath):
+        print("\n\nAnalysing {0}\n".format(filepath))
+        analyse(filepath, background_smoothing=args.bg_smoothing)

@@ -380,7 +380,7 @@ def _duplicated_pos(pos1, pos2, minstep):
     return False
 
 
-def _walk2(im, path, a, step=7, minstep=2, kernel_half_size=11, momentum=5.0, max_depth=5000, step_wise=False):
+def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=6.0, max_depth=5000, step_wise=False):
 
     for _ in range(max_depth):
         old_pos = path[-1]

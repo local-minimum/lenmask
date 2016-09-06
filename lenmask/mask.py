@@ -290,16 +290,22 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
 
     if best.size > 2:
 
+        # TODO: This is one dim too many in the selection somehow
         err = np.abs(np.pi - np.subtract.outer(angles[best], angles[best]))
         pos = np.array(np.array(np.where(err == err.min())))
         pos = np.array([v for v in pos if (np.diff(v) > 0).all()])
-        if pos.shape[0] > 1:
-            # TODO: Something wrong here
-            a1, a2 = angles[best[pos[np.random.randint(0, pos.shape[0])]]]
-        else:
-            a1, a2 = angles[best[pos[0]]]
 
-    if best.size == 2:
+        if pos.shape[0] > 1:
+            a1 = angles[best[pos[np.random.randint(0, pos.shape[0])]]]
+        else:
+            a1 = angles[best[pos[0]]]
+        print(pos)
+        print (a1)
+        v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
+        a2 = np.where(angles == angles1[v1.argmax()])[0][0]
+
+    elif best.size == 2:
+
         a1, a2 = best
         v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
         a1best = angles1[v1.argmax()]

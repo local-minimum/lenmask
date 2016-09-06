@@ -7,6 +7,8 @@ from scipy.signal import convolve2d
 from matplotlib import pyplot as plt
 import numpy as np
 import csv
+from argparse import ArgumentParser
+
 """
 Debug code
 
@@ -486,3 +488,33 @@ def outline(binary_worm, edge_width=1):
     if edge_width > 1:
         e = binary_dilation(e, iterations=edge_width - 1)
     return e
+
+if  __name__ == "__main__":
+
+    parser = ArgumentParser(
+        "LenMask",
+        description="""This program automatically detects worms and other crooked rectangles.""",
+        epilog="""Remember to have fun
+
+        /Martin""")
+
+    parser.add_argument(
+        '-b', '--background-smoothing', dest='bg_smoothing', type=int, default=51,
+        help="""Size of the gaussian sigma by which the background is smoothed to estimate
+        long range trends in background color as an adaptive threshold for the image.
+        This value should not be set low (whatever that is) because it will then distort the
+        stuff of interest.
+        """
+    )
+
+    parser.add_argument(
+        dest='filepath',
+        help="""Path to file to analyse, supported filetypes will depend on your python installation,
+        so if you get an error, try installing the newest version of the python package `pillow`
+        (or its predecessor `PIL`).
+        """
+    )
+
+    args = parser.parse_args()
+
+    analyse(args.filepath, background_smoothing=args.bg_smoothing)

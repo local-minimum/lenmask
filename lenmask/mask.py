@@ -220,7 +220,7 @@ def _seed_walker(dworm):
     return origin, v, -v
 
 
-def _get_pixel_vector(h, a):
+def _get_pixel_vector(h, a, shape=None):
 
     y = np.sin(a) * h
     x = np.cos(a) * h
@@ -228,7 +228,11 @@ def _get_pixel_vector(h, a):
                   np.linspace(h, h + y, h, endpoint=False)))
     v = np.round(v).astype(int)
     delta = (np.diff(v.T, axis=0) ** 2).sum(axis=1) > 0
-    return v.T[1:][delta].T
+    if shape is None:
+        return v.T[1:][delta].T
+    else:
+        v = v.T[1:][delta]
+        return v[((v >= 0) & (v < shape)).all(axis=1)].T
 
 
 def _eval_local_dist_transform(local_im, steps=360):

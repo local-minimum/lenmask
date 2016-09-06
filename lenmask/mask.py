@@ -475,7 +475,7 @@ def analyse(path, background_smoothing=51, save=True):
         ax.imshow(im, cmap=plt.cm.Greys)
         fh = open(path + ".data.csv", 'w')
         csv_writer = csv.writer(fh)
-        csv_writer.writerow(["Worm", "Length", "Area", "X", "Y"])
+        csv_writer.writerow(("Worm", "Length", "Area", "X", "Y"))
 
     for id_worm in range(1, worms.max() + 1):
         worm = worms == id_worm
@@ -483,6 +483,7 @@ def analyse(path, background_smoothing=51, save=True):
             pass
 
         if worm_path.size <= 2:
+            print("Omitting worm {0} because it's too short".format(id_worm))
             continue
 
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
@@ -491,8 +492,11 @@ def analyse(path, background_smoothing=51, save=True):
                                'area': worm.sum()}
 
         if save:
+
             ax.plot(worm_path[0], worm_path[1], lw=3, color="r")
-            csv_writer.writerow([id_worm, worm_len, worm.sum(), worm_path[0].tolist(), worm_path[1].tolist()])
+            ax.annotate(s=str(id_worm), xy=(worm_path[0][0], worm_path[1][0]))
+
+            csv_writer.writerow((id_worm, worm_len, worm.sum(), worm_path[0].tolist(), worm_path[1].tolist()))
 
     if save:
         f.savefig(path + ".paths.png")

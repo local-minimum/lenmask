@@ -332,8 +332,8 @@ def _seed_walker2(distance_worm, kernel_half_size=9, closeness_weight=-1):
         v1, angles1 = _scaled_angle_value(angles, values, a1, angle_dist_weight=closeness_weight)
         a2 = np.where(angles == angles1[v1.argmax()])[0][0]
 
-    a1 = angles[a1]
-    a2 = angles[a2]
+    a1 = angles[int(round(a1))]
+    a2 = angles[int(round(a2))]
 
     return np.array((x, y)), a1, a2
 

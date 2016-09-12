@@ -393,8 +393,12 @@ def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=6.0, ma
             break
         elif len(path) > 1 and _duplicated_pos(pos, path[-2], minstep):
             break
-        elif im[tuple(np.round(pos).astype(int)[::-1])] == 0:
-            break
+        else:
+            im_coord = np.round(pos).astype(int)[::-1]
+            if (im_coord < 0).any() or (im_coord >= im.shape).any():
+                break
+            elif im[tuple(im_coord)] == 0:
+                break
 
         path.append(pos)
 

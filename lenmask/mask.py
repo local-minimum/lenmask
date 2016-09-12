@@ -412,46 +412,6 @@ def _walk2(im, path, a, step=13, minstep=2, kernel_half_size=15, momentum=6, max
         a = np.arctan2(vy, vx)
 
 
-def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):
-
-    for _ in range(max_depth):
-        kernel_size = 2 * kernel_half_size + 1
-
-        x, y = path[-1]
-
-        xmin = max(0, x - kernel_half_size)
-        ymin = max(0, y - kernel_half_size)
-
-        k = im[ymin: ymin + kernel_size, xmin: xmin + kernel_size]
-        if not k.any():
-            print("Outside worm")
-            return path[:-1]
-
-        newy, newx = (int(round(v)) for v in center_of_mass(k))
-
-        newx += xmin
-        newy += ymin
-
-        pos = np.array((newx, newy))
-        old_pos = path[-2]
-        v = pos - old_pos
-        l2 = (v ** 2).sum()
-        if l2 == 0:
-            print("Zero step")
-            return path[:-1]
-
-        l = np.sqrt(l2)
-        if l < minstep:
-            print("Small step")
-            return path
-
-        path[-1] = pos
-
-        path.append(np.round(pos + v / l * step).astype(path[-1].dtype))
-
-    return path
-
-
 def analyse(path, background_smoothing=51, save=True):
 
     im = load_grayscale_image(path)

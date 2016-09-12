@@ -350,18 +350,24 @@ def _get_local_kernel(im, pos, kernel_half_size):
     return im[ymin: ymin + kernel_size, xmin: xmin + kernel_size], xmin, ymin
 
 
-def _adjusted_guess(im, pos, kernel_half_size):
+def _adjusted_guess(im, pos, kernel_half_size, interpolation=0.5):
 
     k, xmin, ymin = _get_local_kernel(im, pos, kernel_half_size)
 
     if not k.any():
         return None
 
-    newy, newx = (int(round(v)) for v in center_of_mass(k))
+    new_local_y, new_local_x = (int(round(v)) for v in center_of_mass(k))
 
-    newx += xmin
-    newy += ymin
-    return newx, newy
+    source_x, source_y = pos
+
+    source_local_x = source_x - xmin
+    source_local_y = source_y - ymin
+
+    delta_x = new_local_x - source_local_x
+    delta_y = new_local_y - source_local_y
+
+    return source_x + interpolation * delta_x, source_y + interpolation * delta_y
 
 
 def _duplicated_pos(pos1, pos2, minstep):

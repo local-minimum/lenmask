@@ -14,7 +14,6 @@ from glob import glob
 """
 Debug code
 
-from matplotlib import pyplot as plt
 plt.ion()
 f = plt.gcf()
 ax = f.add_subplot(2, 1, 1)

@@ -177,33 +177,6 @@ def _distance_worm(im, size=3):
     return convolve2d(distance_transform_edt(im), k, "same")
 
 
-def _seed_walker(dworm):
-
-    m = dworm == dworm.max()
-    lim, l = label(m)
-    best_i = 1
-    best = (lim == 1).sum()
-
-    for i in range(best_i + 1, l + 1):
-
-        val = (lim == i).sum()
-        if val > best:
-            best_i = i
-
-    m = lim == best_i
-    cy, cx = center_of_mass(m)
-    py, px = np.where(m)
-    d = (px - cx) ** 2 - (py - cy) ** 2
-    mind = d.argmin()
-
-    origin = np.array((px[mind], py[mind]))
-    slope, _ = np.polyfit(px, py, 1)
-
-    v = np.array((1, slope))
-    v /= np.sqrt((v ** 2).sum())
-    return origin, v, -v
-
-
 def _get_pixel_vector(h, a, shape=None):
 
     y = np.sin(a) * h

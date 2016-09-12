@@ -500,7 +500,9 @@ def analyse(path, background_smoothing=51, save=True):
         if worm_path.size <= 2:
             print("Omitting worm {0} because it's too short".format(id_worm))
             continue
-
+        else:
+            print("Completed measuring worm {0}".format(id_worm))
+            
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
         worms_data[id_worm] = {'ridge': worm_path,
                                'length': worm_len,

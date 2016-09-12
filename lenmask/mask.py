@@ -185,6 +185,7 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
                     yield path, local_kernel, cur_a
 
         path = path[::-1]
+        # print("Next source is {0}".format(path[-1]))
 
     yield np.array(path).T
 
@@ -370,6 +371,7 @@ def _adjusted_guess(im, pos, kernel_half_size, interpolation=1/3.):
 
     delta_x = new_local_x - source_local_x
     delta_y = new_local_y - source_local_y
+    # print("Adjusting pos {0} with {1}, interp {2}".format(pos, (delta_x, delta_y), interpolation))
 
     return source_x + interpolation * delta_x, source_y + interpolation * delta_y
 
@@ -397,8 +399,12 @@ def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, ma
 
     for _ in range(max_depth):
         old_pos = path[-1]
+
         pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
+
+        # print("Adjusted pos {0}".format(pos))
         # pos = old_pos + _angle_to_v2(a) * step
+
         if pos is None:
             break
 
@@ -519,10 +525,10 @@ def analyse(path, background_smoothing=51, save=True):
             pass
 
         if worm_path.size <= 2:
-            print("Omitting worm {0} because it's too short".format(id_worm))
+            print("Omitting worm {0} because it's too short\n".format(id_worm))
             continue
         else:
-            print("Completed measuring worm {0}".format(id_worm))
+            print("Completed measuring worm {0} ({1} steps)\n".format(id_worm, worm_path.size / 2.))
 
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
         worms_data[id_worm] = {'ridge': worm_path,

@@ -385,6 +385,7 @@ def _duplicated_pos(pos1, pos2, minstep):
 
 
 def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, max_depth=5000, step_wise=False):
+    # TODO: Add flexible momentum based on decreased local kernel mass. If decreasing, more momentum.
 
     for _ in range(max_depth):
         old_pos = path[-1]
@@ -502,7 +503,7 @@ def analyse(path, background_smoothing=51, save=True):
             continue
         else:
             print("Completed measuring worm {0}".format(id_worm))
-            
+
         worm_len = np.sqrt(np.sum(np.diff(worm_path) ** 2, axis=0)).sum()
         worms_data[id_worm] = {'ridge': worm_path,
                                'length': worm_len,

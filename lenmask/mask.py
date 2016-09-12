@@ -354,7 +354,7 @@ def _get_local_kernel(im, pos, kernel_half_size):
     return im[ymin: ymin + kernel_size, xmin: xmin + kernel_size], xmin, ymin
 
 
-def _adjusted_guess(im, pos, kernel_half_size, interpolation=0.5):
+def _adjusted_guess(im, pos, kernel_half_size, interpolation=1/3.):
 
     k, xmin, ymin = _get_local_kernel(im, pos, kernel_half_size)
 

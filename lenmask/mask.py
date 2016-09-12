@@ -424,8 +424,8 @@ def _walk2(im, path, a, step=13, minstep=2, kernel_half_size=15, momentum=6, max
             if (im_coord < 0).any() or (im_coord >= im.shape).any():
                 print("Position outside image, terminating walk.")
                 break
-            elif im[tuple(im_coord)] == 0:
-                print("No worm in sight, terminating walk.")
+            elif im[tuple(im_coord)].sum() == 0:
+                print("No worm in sight {0}, terminating walk.".format(im_coord))
                 break
 
         path.append(pos)

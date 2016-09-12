@@ -391,6 +391,10 @@ def _duplicated_pos(pos1, pos2, minstep):
 def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, max_depth=5000, step_wise=False):
     # TODO: Add flexible momentum based on decreased local kernel mass. If decreasing, more momentum.
 
+    prev_kern_weight = None
+
+    print("Half walk from {2}: {0} -> {1}".format(a, _angle_to_v2(a), path[-1]))
+
     for _ in range(max_depth):
         old_pos = path[-1]
         pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
@@ -434,8 +438,20 @@ def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, ma
         if step_wise:
             yield path, a, best_a, k, values, angles
 
-        a = (momentum * a + best_a) / (1 + momentum)
-        a %= 2 * np.pi
+        kern_weight = float(k.sum())
+        if prev_kern_weight is None:
+            flex_momentum = momentum
+        else:
+            flex_momentum = momentum * np.power(prev_kern_weight / kern_weight, 2)
+        prev_kern_weight = kern_weight
+        # print("a {0} vs best new {1}".format(a, best_a))
+        vx, vy = _angle_to_v2(a) * flex_momentum + _angle_to_v2(best_a)
+        # a = (flex_momentum * a + best_a) / (1 + flex_momentum)
+
+        # print("Momentum: {0}, a {1}".format(flex_momentum, a))
+
+        # a %= 2 * np.pi
+        a = np.arctan2(vy, vx)
 
 
 def _walk(im, path, step=10, minstep=3, kernel_half_size=11, max_depth=1000):

@@ -148,11 +148,15 @@ def get_spine(binary_worm, ax=None, detailed_ax=None, step_wise=False):
     if ax is not None:
         path_line = None
 
+    max_walk = binary_worm.sum() / 100
+
+    print("Origin for worm is {0}".format(origin))
+
     for a in (a1, a2):
 
         # print(a)
 
-        for _, cur_a, best_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise):
+        for _, cur_a, best_a, local_kernel, vals, angles in _walk2(dist_worm, path, a, step_wise=step_wise, max_depth=max_walk):
             if ax is not None:
                 x_data, y_data = np.array(path).T
                 if path_line is None:

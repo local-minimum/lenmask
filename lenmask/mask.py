@@ -388,21 +388,28 @@ def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, ma
 
     for _ in range(max_depth):
         old_pos = path[-1]
-        # pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
-        pos = old_pos + _angle_to_v2(a) * step
+        pos = _adjusted_guess(im, old_pos + _angle_to_v2(a) * step, kernel_half_size)
+        # pos = old_pos + _angle_to_v2(a) * step
         if pos is None:
             break
 
         pos = np.array(pos)
         if _duplicated_pos(pos, old_pos, minstep):
+            print("Duplicated position, distance {0} {1} less than {2}, terminating walk".format(
+                pos, old_pos, minstep))
             break
         elif len(path) > 1 and _duplicated_pos(pos, path[-2], minstep):
+            print("Duplicated postion with second last position {0} {1} less than {2}, terminating walk".format(
+                pos, path[-2], minstep
+            ))
             break
         else:
             im_coord = np.round(pos).astype(int)[::-1]
             if (im_coord < 0).any() or (im_coord >= im.shape).any():
+                print("Position outside image, terminating walk.")
                 break
             elif im[tuple(im_coord)] == 0:
+                print("No worm in sight, terminating walk.")
                 break
 
         path.append(pos)

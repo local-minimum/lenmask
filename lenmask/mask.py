@@ -390,7 +390,8 @@ def _duplicated_pos(pos1, pos2, minstep):
     return False
 
 
-def _walk2(im, path, a, step=8, minstep=2, kernel_half_size=15, momentum=4.0, max_depth=5000, step_wise=False):
+def _walk2(im, path, a, step=13, minstep=2, kernel_half_size=15, momentum=6, max_depth=200, step_wise=False):
+
     # TODO: Add flexible momentum based on decreased local kernel mass. If decreasing, more momentum.
 
     prev_kern_weight = None

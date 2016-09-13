@@ -1,6 +1,6 @@
 # lenmask
 
-Detecting length (and possibly more) of C. elegans in images
+Detecting length (and possibly more) of _C. elegans_ in images.
 If you have other things that are more or less rectangular,
 they should work fine too.
 
